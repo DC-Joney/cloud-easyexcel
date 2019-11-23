@@ -19,6 +19,8 @@ import org.springframework.expression.spel.SpelParserConfiguration;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.springframework.util.Assert;
 import org.springframework.util.ClassUtils;
+import org.springframework.web.context.request.async.DeferredResult;
+import reactor.core.publisher.Mono;
 
 import java.io.InputStream;
 import java.util.List;
@@ -93,14 +95,15 @@ public class ExcelUtils implements ApplicationContextAware, ApplicationEventPubl
     }
 
     /**
-     *
+     * 代码不规范，有问题，需要改，reactor是流式处理，这么写没好处
      * @param inputStream excel IO流
      * @param excelRules excel表格对应的sheet页面
      * @param convertFunction //excel多Sheet页面事件处理
      * @param asyncState //是否异步
      */
-    public static void readExcel(InputStream inputStream, List<ExcelRule<?>> excelRules,
-                Function<List<ReadExcelEvent<?>>, ApplicationEvent> convertFunction,boolean asyncState) {
+    @SuppressWarnings("unchecked")
+    public static Mono<Void> readExcel(InputStream inputStream, List<ExcelRule<?>> excelRules,
+                                 Function<List<ReadExcelEvent<?>>, ApplicationEvent> convertFunction, boolean asyncState) {
 
         Assert.notEmpty(excelRules, "ruleMap must not be null");
 
@@ -125,6 +128,9 @@ public class ExcelUtils implements ApplicationContextAware, ApplicationEventPubl
         excelManagement.readExcel(excelReader);
 
         excelReader.finish();
+
+        return Mono.subscriberContext()
+                .map(context-> context.get(DeferredResult.class).setResult("success")).then();
     }
 
 

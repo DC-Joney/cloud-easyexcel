@@ -16,7 +16,11 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.context.request.async.DeferredResult;
 import org.springframework.web.multipart.MultipartFile;
+import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Scheduler;
+import reactor.core.scheduler.Schedulers;
 
 import java.io.IOException;
 import java.time.Duration;
@@ -30,34 +34,38 @@ import java.util.List;
 @RestController
 @RequiredArgsConstructor(onConstructor = @__(@Autowired))
 @RequestMapping("/budget")
+
+// 公司是 spring mvc 模式
 public class HelloController {
 
     private List<SummaryFunds> fundsList = Lists.newCopyOnWriteArrayList();
 
+    private Scheduler scheduler = Schedulers.newParallel("handle-excel-data");
 
     @GetMapping("/test")
-    public String test(){
+    public String test() {
         return "test";
     }
 
 
     @PostMapping("/upload")
-    @ApiOperation(value = "upload",notes = "解析excel文件",httpMethod = "POST")
-    public void summaryFunds(MultipartFile multipartFile) throws IOException {
+    @ApiOperation(value = "upload", notes = "解析excel文件", httpMethod = "POST")
+    public DeferredResult<?> summaryFunds(MultipartFile multipartFile) throws IOException {
         ImmutableList<ExcelRule<?>> excelRules = ImmutableList.of(new CapitalPlanRule(), new ActualCapitalRule());
-        Instant beforeTime = Instant.now();
-        ExcelUtils.readExcel(multipartFile.getInputStream(), excelRules,null,false);
-        System.out.println(Duration.between(beforeTime,Instant.now()));
+        DeferredResult<?> deferredResult = new DeferredResult<>();
+        Mono.just(multipartFile.getInputStream())
+                .flatMap(inputStream -> ExcelUtils.readExcel(inputStream, excelRules, null, false))
+                .subscribeOn(scheduler)
+                .subscriberContext(context -> context.put(DeferredResult.class, deferredResult))
+                .subscribe();
+        return deferredResult;
     }
 
     @GetMapping("/summaryFunds")
-    @ApiOperation(value = "summaryFunds",notes = "读取数据",httpMethod = "GET")
-    public List<SummaryFunds> getSummaryFunds(){
+    @ApiOperation(value = "summaryFunds", notes = "读取数据", httpMethod = "GET")
+    public List<SummaryFunds> getSummaryFunds() {
         return Collections.unmodifiableList(fundsList);
     }
-
-
-
 
 
 }
