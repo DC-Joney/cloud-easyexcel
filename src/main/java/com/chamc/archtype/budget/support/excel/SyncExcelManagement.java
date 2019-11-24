@@ -17,11 +17,11 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.web.context.request.async.DeferredResult;
+import reactor.core.publisher.Mono;
+import reactor.util.context.Context;
 
-import java.util.EventListener;
-import java.util.List;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 import java.util.function.Function;
 
 /**
@@ -89,7 +89,7 @@ public class SyncExcelManagement implements ExcelManagement {
         try {
             cacheEvent.eventBus.unregister(this);
             eventBusPool.getObjectPool().returnObject(cacheEvent.eventBus);
-            if(cacheEvent.errorState){
+            if (cacheEvent.errorState) {
                 listeners.clear();
                 readExcelEvents.clear();
             }
@@ -101,8 +101,37 @@ public class SyncExcelManagement implements ExcelManagement {
     }
 
     @Override
+    public void readAsyncExcel(ExcelReader excelReader, DeferredResult<String> deferredResult) {
+        this.sheetSize = listeners.size();
+
+        try {
+            readCore(excelReader);
+        } catch (Exception exception) {
+            String errorMsg;
+
+            if (exception.getCause() instanceof ExcelException || exception instanceof ExcelException) {
+                errorMsg = exception.getMessage();
+            } else {
+                errorMsg = "解析excel数据除出错，请联系管理员进行处理";
+                log.error("上传excel表格信息出错： ", exception);
+            }
+
+            deferredResult.setErrorResult(errorMsg);
+            excelReader.finish();
+
+            return;
+        }
+        deferredResult.setResult("success");
+    }
+
+    @Override
     public void readExcel(ExcelReader excelReader) {
         this.sheetSize = listeners.size();
+        readCore(excelReader);
+    }
+
+
+    private void readCore(ExcelReader excelReader) {
         listeners.forEach(listener -> {
             ExcelRule<?> excelRule = listener.getExcelRule();
             ReadSheet readSheet =
@@ -113,7 +142,8 @@ public class SyncExcelManagement implements ExcelManagement {
         });
     }
 
-    void addListener(ExcelReadListener excelReadListener) {
+
+    public void addListener(ExcelReadListener excelReadListener) {
         try {
             excelReadListener.register(this, eventBusPool.getObjectPool().borrowObject());
         } catch (Exception e) {

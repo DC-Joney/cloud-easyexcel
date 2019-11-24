@@ -1,8 +1,8 @@
 package com.chamc.archtype.budget.utils;
 
 import com.alibaba.excel.annotation.ExcelProperty;
-import com.chamc.archtype.budget.support.excel.ExcelUtils;
 import com.chamc.archtype.budget.support.excel.validate.ExcelValidatorFactory;
+import com.chamc.archtype.budget.support.excel.validate.ValidateSqlExpressContext;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
@@ -15,11 +15,18 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.core.annotation.AnnotationAttributes;
+import org.springframework.core.task.AsyncTaskExecutor;
+import org.springframework.expression.spel.SpelCompilerMode;
+import org.springframework.expression.spel.SpelParserConfiguration;
+import org.springframework.expression.spel.standard.SpelExpressionParser;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
+import org.springframework.util.ClassUtils;
 import org.springframework.util.ReflectionUtils;
 import org.springframework.util.StringUtils;
 
 import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.*;
+import java.util.concurrent.ThreadPoolExecutor;
 
 /**
  * 缓存、校验、EventBus管理
@@ -34,6 +41,15 @@ public class LocalContext implements InitializingBean, ApplicationContextAware {
 
     private ApplicationContext applicationContext;
 
+    @Getter
+    private static AsyncTaskExecutor excelExecutor;
+
+    @Getter
+    private static ValidateSqlExpressContext validateContext;
+
+    private SpelParserConfiguration configuration;
+
+
     @Autowired
     private EventBusPool eventBusPool;
 
@@ -47,6 +63,31 @@ public class LocalContext implements InitializingBean, ApplicationContextAware {
                 .softValues().weakKeys()
                 .build(new ExcelCacheLoader());
         LocalContext.validatorFactory = new ExcelValidatorFactory(applicationContext);
+        excelExecutor = buildTaskExecutor();
+
+        this.configuration = new SpelParserConfiguration(SpelCompilerMode.OFF, ClassUtils.getDefaultClassLoader());
+
+        //init Spel context
+        validateContext = new ValidateSqlExpressContext(new SpelExpressionParser(configuration));
+        applicationContext.getAutowireCapableBeanFactory().initializeBean(validateContext, validateContext.getClass().getSimpleName());
+    }
+
+    private ThreadPoolTaskExecutor buildTaskExecutor() {
+        int processor = Runtime.getRuntime().availableProcessors();
+        ThreadPoolTaskExecutor taskExecutor = new ThreadPoolTaskExecutor();
+        taskExecutor.setAllowCoreThreadTimeOut(false);
+        taskExecutor.setCorePoolSize(Runtime.getRuntime().availableProcessors());
+        taskExecutor.setMaxPoolSize(processor * 2);
+        taskExecutor.setAwaitTerminationSeconds(60);
+        taskExecutor.setQueueCapacity(500);
+        taskExecutor.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
+        taskExecutor.setWaitForTasksToCompleteOnShutdown(true);
+        taskExecutor.setKeepAliveSeconds(60);
+        taskExecutor.setDaemon(false);
+        taskExecutor.setThreadGroup(Thread.currentThread().getThreadGroup());
+        taskExecutor.setThreadNamePrefix("handle-excel-");
+        taskExecutor.afterPropertiesSet();
+        return taskExecutor;
     }
 
     @Override

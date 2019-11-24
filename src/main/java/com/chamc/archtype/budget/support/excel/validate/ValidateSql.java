@@ -19,7 +19,7 @@ public @interface ValidateSql {
 
     boolean isNull() default true;
 
-    String message() default "";
+    String message() default "校验信息错误，请重新核对";
 
     Class<?>[] groups() default {};
 

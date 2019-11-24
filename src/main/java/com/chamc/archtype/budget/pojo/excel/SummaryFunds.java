@@ -22,7 +22,7 @@ public class SummaryFunds implements Serializable {
     @ExcelProperty("序号")
     private String seq;
 
-    @NotNull(message = "资金不能为空")
+    @NotNull(message = "金额不能为空")
     @ExcelProperty("金额")
     @DecimalMin(value = "0.00")
     private BigDecimal money;
@@ -32,18 +32,18 @@ public class SummaryFunds implements Serializable {
     private String unit;
 
     @NotBlank(message = "资金类型不能为空")
-    @ValidateSql(condition = "@budgetService.selectOne(#capitalType)")
+    @ValidateSql(condition = "@budgetService.selectOne(#capitalType)",message = "资金类型不匹配，请按照模板进行修改")
     @ExcelProperty("资金类型")
     private String capitalType;
 
     @ExcelProperty("项目名称")
     private String projectName;
 
-    @ValidateSql(condition = "@budgetService.selectOne(#this)")
+    @ValidateSql(condition = "@budgetService.selectOne(#this)",message = "项目类型不匹配，请按照模板进行修改")
     @ExcelProperty("项目类型")
     private String projectType;
 
-    @ValidateSql(condition = "@budgetService.selectOne(#this)")
+    @ValidateSql(condition = "@budgetService.selectOne(#this)",message = "专项额度不匹配，请按照模板进行修改")
     @ExcelProperty("专项额度使用")
     private String specialQuota;
 

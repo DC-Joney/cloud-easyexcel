@@ -110,15 +110,15 @@ public class ExcelReadListener<T> extends AnalysisEventListener<T> {
 
             ReadRowHolder rowHolder = context.readRowHolder();
 
-            String message = "第" + (sheetHolder.getSheetNo() + 1) + "个sheet页面名称为 : " + sheetHolder.getSheetName() + "\n";
+            String message = "第" + (sheetHolder.getSheetNo() + 1) + "个sheet页面名称为 : " + sheetHolder.getSheetName() + "，==> ";
 
             if (exception instanceof ExcelParseException || exception instanceof ExcelTitleParseException) {
 
                 if (exception instanceof ExcelParseException) {
-                    message = message + "第" + (rowHolder.getRowIndex() + 1) + "行数据格式出错, 信息为: " + exception.getMessage();
+                    message = message + "第" + (rowHolder.getRowIndex() + 1) + "行数据格式出错: " + exception.getMessage();
                 }
                 if (exception instanceof ExcelTitleParseException) {
-                    message = "excel标头错误，信息为: " + exception.getMessage();
+                    message = "excel标头错误，差异信息为: " + exception.getMessage();
                 }
 
                 throw new ExcelException(message);

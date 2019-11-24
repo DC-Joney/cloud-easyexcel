@@ -1,6 +1,6 @@
 package com.chamc.archtype.budget.support.excel.validate;
 
-import com.chamc.archtype.budget.support.excel.ExcelUtils;
+import com.chamc.archtype.budget.utils.LocalContext;
 import org.springframework.context.expression.AnnotatedElementKey;
 import org.springframework.util.StringUtils;
 
@@ -21,7 +21,7 @@ public class SQLCheckValidator implements ConstraintValidator<ValidateSql, Strin
     @Override
     public boolean isValid(String targetValue, ConstraintValidatorContext context) {
 
-        ValidateSqlExpressContext elContext = ExcelUtils.getContext();
+        ValidateSqlExpressContext expressContext = LocalContext.getValidateContext();
 
         if (!StringUtils.hasText(validateSql.condition())) {
             throw new RuntimeException("The condition must not null");
@@ -33,7 +33,11 @@ public class SQLCheckValidator implements ConstraintValidator<ValidateSql, Strin
 
         AnnotatedElementKey fieldKey = new AnnotatedElementKey(targetValue.getClass(), validateSql.targetClass());
 
-        return elContext.condition(validateSql.condition(), targetValue, fieldKey);
+//        context.disableDefaultConstraintViolation();
+
+//        context.buildConstraintViolationWithTemplate("{}").addPropertyNode();
+
+        return expressContext.condition(validateSql.condition(), targetValue, fieldKey);
     }
 
 }

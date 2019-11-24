@@ -18,13 +18,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.context.request.async.DeferredResult;
 import org.springframework.web.multipart.MultipartFile;
-import reactor.core.publisher.Mono;
-import reactor.core.scheduler.Scheduler;
-import reactor.core.scheduler.Schedulers;
 
 import java.io.IOException;
-import java.time.Duration;
-import java.time.Instant;
+import java.io.InputStream;
 import java.util.Collections;
 import java.util.List;
 
@@ -40,8 +36,6 @@ public class HelloController {
 
     private List<SummaryFunds> fundsList = Lists.newCopyOnWriteArrayList();
 
-    private Scheduler scheduler = Schedulers.newParallel("handle-excel-data");
-
     @GetMapping("/test")
     public String test() {
         return "test";
@@ -50,16 +44,35 @@ public class HelloController {
 
     @PostMapping("/upload")
     @ApiOperation(value = "upload", notes = "解析excel文件", httpMethod = "POST")
-    public DeferredResult<?> summaryFunds(MultipartFile multipartFile) throws IOException {
+    public String summaryFunds(MultipartFile multipartFile) throws IOException {
+
         ImmutableList<ExcelRule<?>> excelRules = ImmutableList.of(new CapitalPlanRule(), new ActualCapitalRule());
-        DeferredResult<?> deferredResult = new DeferredResult<>();
-        Mono.just(multipartFile.getInputStream())
-                .flatMap(inputStream -> ExcelUtils.readExcel(inputStream, excelRules, null, false))
-                .subscribeOn(scheduler)
-                .subscriberContext(context -> context.put(DeferredResult.class, deferredResult))
-                .subscribe();
+
+        InputStream excelStream = multipartFile.getInputStream();
+
+        ExcelUtils.readExcel(excelStream, excelRules, null,
+                false);
+
+        return "success";
+    }
+
+
+    @PostMapping("/asyncUpload")
+    @ApiOperation(value = "upload", notes = "解析excel文件", httpMethod = "POST")
+    public DeferredResult<String> asyncSummaryFunds(MultipartFile multipartFile) throws IOException {
+
+        ImmutableList<ExcelRule<?>> excelRules = ImmutableList.of(new CapitalPlanRule(), new ActualCapitalRule());
+
+        InputStream excelStream = multipartFile.getInputStream();
+
+        DeferredResult<String> deferredResult = new DeferredResult<>();
+
+        ExcelUtils.readExcelAsync(excelStream, excelRules, null,
+                false, deferredResult);
+
         return deferredResult;
     }
+
 
     @GetMapping("/summaryFunds")
     @ApiOperation(value = "summaryFunds", notes = "读取数据", httpMethod = "GET")

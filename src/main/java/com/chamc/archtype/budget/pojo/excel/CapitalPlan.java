@@ -8,6 +8,7 @@ import lombok.Setter;
 import org.springframework.validation.annotation.Validated;
 
 import javax.validation.constraints.NotNull;
+import javax.validation.constraints.Past;
 import java.util.Date;
 
 /**
@@ -24,6 +25,7 @@ public class CapitalPlan extends SummaryFunds {
     @NotNull(message = "计划拨款日期不能为空")
     @ExcelProperty("计划拨款日期")
     @DateTimeFormat("yyyy/mm/dd")
+    @Past
     private Date appropriationDate;
 
     @ExcelProperty("请示文号")

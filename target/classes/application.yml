@@ -9,9 +9,9 @@ server:
 spring:
   datasource:
     driver-class-name: com.mysql.jdbc.Driver
-    url:
-    username:
-    password: 
+    url: jdbc:mysql://123.56.16.249:3306/rong_demo?charset=utf8&useSSL=false&serverTimezone=GMT%2B8
+    username: root
+    password: kanglu5211314
   jpa:
     generate-ddl: false
     show-sql: true
@@ -20,7 +20,7 @@ spring:
     hibernate:
       ddl-auto: update
 
-# /actuator ¼à¿Ø¶Ëµã
+# /actuator ï¿½ï¿½Ø¶Ëµï¿½
 management:
   endpoints:
     web:
