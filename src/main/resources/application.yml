@@ -11,7 +11,7 @@ spring:
     driver-class-name: com.mysql.jdbc.Driver
     url:
     username:
-    password: 
+    password:
   jpa:
     generate-ddl: false
     show-sql: true
